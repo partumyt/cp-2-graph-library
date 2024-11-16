@@ -6,9 +6,6 @@ class Graph:
     """
 
     def __init__(self):
-        """
-        Initializes an empty graph.
-        """
         self.adjacency_list = {}
 
     @staticmethod
@@ -97,10 +94,28 @@ class Graph:
         """
         return {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
 
-    def clear(self) -> dict():
+    def clear(self) -> dict:
         """
-        Returns empty dict.
+        Clears the graph.
 
-        :return: clear dict
+        :return: An empty dictionary.
         """
         return dict()
+
+    def convert_to_dot(self, filename: str) -> None:
+        """
+        Converts a graph from an edge list file to a directed graph in DOT format and saves it to a new file.
+
+        :param filename: The name of the input file containing graph edges in "node1,node2" format.
+        :return: None. The graph is saved to a file with the same name but with a .dot extension.
+        """
+        edges = self.to_edge_list()
+        output_filename = filename.rsplit('.', 1)[0] + '.dot'
+
+        with open(output_filename, 'w', encoding='utf-8') as file:
+            file.write("digraph {\n")
+            for node1, node2 in edges:
+                file.write(f"{node1} -> {node2}\n")
+            file.write("}\n")
+
+        print(f"Graph saved in DOT format to file {output_filename}")
