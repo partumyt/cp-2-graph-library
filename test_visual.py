@@ -107,7 +107,13 @@ class Graph:
         return {}
 
 
-def draw_graph(G):
+def draw_graph(G, ax):
+    """
+    Draws the graph on the provided axes (ax) object.
+
+    :param G: The graph object containing nodes and edges.
+    :param ax: The axes on which to draw the graph.
+    """
     if len(G.adjacency_list) == 0:  # Check if the graph is empty
         st.warning("Graph is empty!")
         return
@@ -115,12 +121,14 @@ def draw_graph(G):
     # Convert the adjacency list into a NetworkX graph
     nx_graph = nx.Graph(G.adjacency_list)
 
-    plt.figure(figsize=(8, 6))
+    ax.clear()  # Clear the previous drawing (important to reuse the same axes)
+
+    # Draw the graph with updated data
     pos = nx.spring_layout(nx_graph)  # Layout for positioning the nodes
     nx.draw(nx_graph, pos, with_labels=True, node_size=500, node_color="skyblue", font_size=10, font_weight="bold",
-            edge_color="gray")
-    plt.title("Graph Visualization")
-    st.pyplot(plt)
+            edge_color="gray", ax=ax)
+    ax.set_title("Graph Visualization")
+    st.pyplot(fig=ax.figure)  # Update the existing figure without creating a new one
 
 
 def main():
@@ -128,6 +136,9 @@ def main():
 
     # Create a graph instance
     G = Graph()
+
+    # Matplotlib figure and axis for updating graph visualization
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     # File Upload for Graph Data
     uploaded_file = st.file_uploader("Upload a Graph File (CSV format with node1,node2 per line)", type=["csv"])
@@ -137,6 +148,7 @@ def main():
         stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
         G.from_file(stringio)
         st.success("Graph loaded from file!")
+        draw_graph(G, ax)  # Automatically visualize after file upload
 
     # Dropdown for graph operations
     option = st.selectbox("Choose an operation",
@@ -148,6 +160,7 @@ def main():
         if st.button("Add Node"):
             G.add_node(node)
             st.success(f"Node {node} added.")
+            draw_graph(G, ax)  # Re-render graph after adding a node
 
     # Remove Node
     elif option == "Remove Node":
@@ -155,6 +168,7 @@ def main():
         if st.button("Remove Node"):
             G.remove_node(node)
             st.success(f"Node {node} removed.")
+            draw_graph(G, ax)  # Re-render graph after removing a node
 
     # Add Edge
     elif option == "Add Edge":
@@ -163,6 +177,7 @@ def main():
         if st.button("Add Edge"):
             G.add_edge((node1, node2))
             st.success(f"Edge ({node1}, {node2}) added.")
+            draw_graph(G, ax)  # Re-render graph after adding an edge
 
     # Remove Edge
     elif option == "Remove Edge":
@@ -171,10 +186,11 @@ def main():
         if st.button("Remove Edge"):
             G.remove_edge((node1, node2))
             st.success(f"Edge ({node1}, {node2}) removed.")
+            draw_graph(G, ax)  # Re-render graph after removing an edge
 
     # Visualize Graph
     elif option == "Visualize Graph":
-        draw_graph(G)
+        draw_graph(G, ax)
 
 
 if __name__ == "__main__":
