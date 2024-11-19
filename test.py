@@ -102,7 +102,7 @@ class Graph:
         """
         return dict()
 
-    def convert_to_dot(self, filename: str) -> None:
+    def convert_to_dot(self, filename: str) -> str:
         """
         Converts a graph from an edge list file to a directed graph in DOT format and saves it to a new file.
 
@@ -117,5 +117,19 @@ class Graph:
             for node1, node2 in edges:
                 file.write(f"{node1} -> {node2}\n")
             file.write("}\n")
+        return f"Graph saved in DOT format to file {output_filename}"
 
-        print(f"Graph saved in DOT format to file {output_filename}")
+    def __str__(self):
+        """
+        Returns a string representation of the graph in adjacency list format.
+        """
+        result = []
+        for node, neighbors in self.adjacency_list.items():
+            neighbors_str = ", ".join(map(str, neighbors))
+            result.append(f"{node}: [{neighbors_str}]")
+        return "\n".join(result)
+
+
+g = Graph()
+# print(g.from_file("large_connected_graph_edge_list.csv"))
+print(g.from_file("graph.csv"))
