@@ -131,5 +131,4 @@ class Graph:
 
 
 g = Graph()
-# print(g.from_file("large_connected_graph_edge_list.csv"))
 print(g.from_file("graph.csv"))

@@ -1,81 +1,58 @@
-def is_available(vertex, color, graph, colors):
+def is_available(vertex, color, graph, colors, directed=False):
     """
     Check if a color can be assigned to the vertex without conflicts.
+
+    :param vertex: The current vertex to color.
+    :param color: The color to assign.
+    :param graph: The adjacency list of the graph.
+    :param colors: The dictionary of assigned colors.
+    :param directed: Flag indicating if the graph is directed.
+    :return: True if the color can be assigned, False otherwise.
     """
-    return all(colors[neighbor] != color for neighbor in graph[vertex])
+    if directed:
+        return all(colors[neighbor] != color for neighbor in graph[vertex]) and \
+               all(colors[neighbor] != color for neighbor in graph if vertex in graph[neighbor])
+    else:
+        return all(colors[neighbor] != color for neighbor in graph[vertex])
 
-
-def color_graph(graph, colors, vertex, available_colors, degree_order):
+def color_graph(graph, colors, vertex_index, available_colors, degree_order, directed=False):
     """
     Recursively try to color the graph using backtracking.
+
+    :param graph: The adjacency list of the graph.
+    :param colors: The dictionary of assigned colors.
+    :param vertex_index: The current index of the vertex to color.
+    :param available_colors: The list of available colors.
+    :param degree_order: The list of vertices sorted by degree.
+    :param directed: Flag indicating if the graph is directed.
+    :return: True if the graph can be colored, False otherwise.
     """
-    if vertex == len(graph):
+    if vertex_index == len(degree_order):
         return True
-    current_vertex = degree_order[vertex]
+
+    current_vertex = degree_order[vertex_index]
     for color in available_colors:
-        if is_available(current_vertex, color, graph, colors):
+        if is_available(current_vertex, color, graph, colors, directed):
             colors[current_vertex] = color
-            if color_graph(graph, colors, vertex + 1, available_colors, degree_order):
+            if color_graph(graph, colors, vertex_index + 1, available_colors, degree_order, directed):
                 return True
             colors[current_vertex] = None
     return False
 
-
-def three_color_graph(graph: dict) -> list[tuple]:
+def three_color_graph(graph: dict, directed=False) -> list[tuple]:
     """
     Attempt to color the graph using 3 colors.
-    """
-    # Ensure that the graph vertices are sorted correctly
-    vertices = list(graph.keys())
-    num_vertices = len(vertices)
-    colors = {v: None for v in vertices}  # Use a dictionary to store colors by vertex label
-    available_colors = ["r", "g", "b"]
 
-    # Sort vertices by degree (highest degree first)
+    :param graph: The adjacency list of the graph.
+    :param directed: Flag indicating if the graph is directed.
+    :return: A list of tuples representing vertex-color pairs if the graph can be colored, otherwise a message.
+    """
+    vertices = list(graph.keys())
+    colors = {v: None for v in vertices}
+    available_colors = ["r", "g", "b"]
     degrees = {v: len(neighbors) for v, neighbors in graph.items()}
     degree_order = sorted(vertices, key=lambda v: degrees[v], reverse=True)
 
-    # Try coloring the graph
-    if color_graph(graph, colors, 0, available_colors, degree_order):
-        return [(vertex, colors[vertex]) for vertex in vertices]
-    else:
-        return "Impossible to color the graph in 3 colors"
-
-
-# Example graph
-g = {
-    1: [2, 3, 5],
-    2: [1, 4, 6],
-    3: [1, 7, 8],
-    4: [2, 9, 10],
-    5: [1, 11, 12],
-    6: [2, 13, 14],
-    7: [3, 15, 16],
-    8: [3, 17, 18],
-    9: [4, 19, 20],
-    10: [4, 21, 22],
-    11: [5, 23, 24],
-    12: [5, 25, 26],
-    13: [6, 27, 28],
-    14: [6, 29, 30],
-    15: [7, 1, 9],
-    16: [7, 2, 10],
-    17: [8, 3, 11],
-    18: [8, 4, 12],
-    19: [9, 5, 13],
-    20: [9, 6, 14],
-    21: [10, 7, 15],
-    22: [10, 8, 16],
-    23: [11, 9, 17],
-    24: [11, 10, 18],
-    25: [12, 11, 19],
-    26: [12, 12, 20],
-    27: [13, 17, 23],
-    28: [13, 18, 24],
-    29: [14, 19, 25],
-    30: [14, 20, 26]
-}
-
-
-
-print(three_color_graph(g))
+    return [(vertex, colors[vertex]) for vertex in vertices] \
+        if color_graph(graph, colors, 0, available_colors, degree_order, directed) \
+        else "Impossible to color the graph in 3 colors"

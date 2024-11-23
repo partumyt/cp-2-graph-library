@@ -1,4 +1,3 @@
-import time
 import streamlit as st
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -108,10 +107,7 @@ def three_color_graph(graph: dict) -> dict[int, str] | str:
     colors = {v: None for v in vertices}
     available_colors = ["r", "g", "b"]
     degree_order = sorted(vertices, key=lambda v: len(graph[v]), reverse=True)
-
-    if color_graph(colors, 0, available_colors, degree_order):
-        return colors
-    return "Impossible to color the graph in 3 colors."
+    return colors if color_graph(colors, 0, available_colors, degree_order) else "Impossible to color the graph in 3 colors."
 
 
 def main():
