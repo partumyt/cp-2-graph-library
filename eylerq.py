@@ -3,107 +3,108 @@ Conditions for the existence of an Eulerian cycle:
     1. The graph must be connected.
     2. Every vertex must have an even degree.
 """
-from typing import Dict, List, Union
-
-def find_eulerian_cycle(graph: Dict[int, List[int]]) -> Union[List[int], str]:
+def find_eulerian_cycle_general(graph: Dict[int, List[int]]) -> Union[List[int]:
     """
-    Finds an Eulerian cycle in the graph or returns a message if it doesn't exist.
+    Finding the Euler cycle for a nonhomogeneous graph.
 
-    :param: A dictionary where the key is a vertex, 
-                  and the value is a list of adjacent vertices (undirected graph).
-    :return: A list of vertices in the order of the Eulerian cycle, 
-             or a message indicating its absence.
+    :param graph: dictionary of adjacency lists.
+    :return: a list of vertices in the order of the Euler cycle or a message about its absence.
 
-    Example usage:
-    >>> graph1 = {1: [2, 3], 2: [1, 3], 3: [1, 2]}
-    >>> find_eulerian_cycle(graph1)
-    [1, 2, 3, 1]
-
-    >>> graph2 = {1: [2], 2: [1, 3], 3: [2]}
-    >>> find_eulerian_cycle(graph2)
-    'Eulerian cycle is not possible: not all vertices have an even degree.'
-
-    >>> graph3 = {1: [2, 3, 4], 2: [1, 3], 3: [1, 2, 4], 4: [1, 3]}
-    >>> find_eulerian_cycle(graph3)
-    'Eulerian cycle is not possible: not all vertices have an even degree.'
-
-    >>> graph4 = {1: [2, 4], 2: [1, 3], 3: [2, 4], 4: [1, 3]}
-    >>> find_eulerian_cycle(graph4)
-    [1, 2, 3, 4, 1]
+    >>> general_graph = {
+    ...     0: [1, 2],
+    ...     1: [0, 2],
+    ...     2: [0, 1]
+    ... }
+    >>> print(find_eulerian_cycle_general(general_graph))
+    [0, 2, 1, 0]
     """
-    # filter out vertices with no edges
-    filtered_graph = {v: neighbors for v, neighbors in graph.items() if neighbors}
+    def find_cycle(start, local_graph):
+        stack = [start]
+        cycle = []
+        while stack:
+            u = stack[-1]
+            if local_graph[u]:
+                v = local_graph[u].pop()
+                local_graph[v].remove(u)
+                stack.append(v)
+            else:
+                cycle.append(stack.pop())
+        return cycle[::-1]
 
-    # check if all vertices with edges have an even degree
-    for vertex, neighbors in filtered_graph.items():
-        if len(neighbors) % 2 != 0:
-            return "Eulerian cycle is not possible: not all vertices have an even degree."
+    if any(len(neighbors) % 2 != 0 for neighbors in graph.values()):
+        return "The graph does not have an Euler cycle"
 
-    # check if the graph is connected
-    def is_connected(graph: Dict[int, List[int]]) -> bool:
-        """
-        >>> graph1 = {1: [2], 2: [1, 3], 3: [2]}  # connected graph
-        >>> is_connected(graph1)
-        True
+    local_graph = {node: neighbors[:] for node, neighbors in graph.items()}
 
-        >>> graph2 = {1: [2], 2: [1], 3: []}  # disconnected graph (vertex 3 isolated)
-        >>> is_connected(graph2)
-        False
+    start_node = next(iter(local_graph))
+    cycle = find_cycle(start_node, local_graph)
 
-        >>> graph3 = {}  # empty graph
-        >>> is_connected(graph3)
-        True
-
-        >>> graph4 = {1: []}  # graph with a single vertex and no edges
-        >>> is_connected(graph4)
-        True
-        """
-        visited = set()
-
-        def dfs(v):
-            visited.add(v)
-            for neighbor in graph[v]:
-                if neighbor not in visited:
-                    dfs(neighbor)
-
-        # start DFS from any vertex in the filtered graph
-        start = next(iter(graph))
-        dfs(start)
-
-        return len(visited) == len(graph)
-
-    if not is_connected(filtered_graph):
-        return "Eulerian cycle is not possible: the graph is not connected."
-
-    # recursive function to find the Eulerian cycle
-    def dfs_cycle(v: int) -> None:
-        """
-        >>> filtered_graph = {1: [2], 2: [1, 3], 3: [2, 1]}
-        >>> cycle = []
-        >>> start_vertex = 1
-        >>> dfs_cycle(start_vertex)
-        >>> cycle
-        [1, 2, 3, 1]
-
-        >>> filtered_graph = {1: [2], 2: [1], 3: []}
-        >>> cycle = []
-        >>> start_vertex = 1
-        >>> dfs_cycle(start_vertex)
-        >>> cycle
-        [1, 2, 1]
-        """
-        while filtered_graph[v]:
-            u = filtered_graph[v].pop()
-            filtered_graph[u].remove(v)
-            dfs_cycle(u)
-        cycle.append(v)
-
-    # create a copy of the graph for traversal
-    cycle: List[int] = []
-    start_vertex = next(iter(filtered_graph))  # start from any vertex with edges
-    dfs_cycle(start_vertex)
+    if any(neighbors for neighbors in local_graph.values()):
+        return "The graph does not have an Euler cycle"
 
     return cycle
+
+
+def find_eulerian_cycle_uniform(graph: Dict[int, List[int]]) -> Union[List[int]:
+    """
+    Finding the Euler cycle for a homogeneous graph.
+
+    :param graph: dictionary of adjacency lists.
+    :return: a list of vertices in the order of the Euler cycle or a message about its absence.
+    
+    >>> uniform_graph = {
+    ...     0: [1, 2, 3, 1],
+    ...     1: [0, 2, 3, 0],
+    ...     2: [0, 1, 3, 3],
+    ...     3: [0, 1, 2, 2]
+    ... }
+    >>> print(find_eulerian_cycle_uniform(uniform_graph))
+    [0, 1, 0, 3, 2, 3, 1, 2, 0]
+    """
+    def find_cycle(start, local_graph):
+        stack = [start]
+        cycle = []
+        while stack:
+            u = stack[-1]
+            if local_graph[u]:
+                v = local_graph[u].pop()
+                local_graph[v].remove(u)
+                stack.append(v)
+            else:
+                cycle.append(stack.pop())
+        return cycle[::-1]
+
+    # Check if all degrees are even
+    if any(len(neighbors) % 2 != 0 for neighbors in graph.values()):
+        return "The graph does not have an Euler cycle"
+
+    # Check if the graph is connected
+    visited = set()
+
+    def dfs(node):
+        if node not in visited:
+            visited.add(node)
+            for neighbor in graph[node]:
+                dfs(neighbor)
+
+    start_node = next(iter(graph))
+    dfs(start_node)
+
+    if len(visited) != len(graph):
+        return "The graph is not connected"
+
+    # Create a local copy of the graph
+    local_graph = {node: neighbors[:] for node, neighbors in graph.items()}
+
+    # Find Eulerian cycle
+    cycle = find_cycle(start_node, local_graph)
+
+    # Ensure no edges are left
+    if any(neighbors for neighbors in local_graph.values()):
+        return "The graph does not have an Euler cycle"
+
+    return cycle
+
 
 if __name__ == '__main__':
     import doctest
