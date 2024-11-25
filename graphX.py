@@ -16,6 +16,7 @@ class Graph:
         adjacency_list (dict[int, set[int]]): The adjacency list representation of the graph using sets.
         directed (bool): Indicates if the graph is directed or undirected.
     """
+
     def __init__(self, directed: bool = False):
         """
         Initialize a new graph.
@@ -23,48 +24,69 @@ class Graph:
         :param directed: Whether the graph is directed. Defaults to False (undirected).
         """
         self.adjacency_list: dict[int, set[int]] = {}
-        self.directed = directed
+        self.default_directed = directed
 
-    def add_edge(self, edge: tuple[int, int]) -> None:
+    def add_edge(self, edge: tuple[int, int], directed: bool = None) -> dict[int, list[int]]:
         """
         Add an edge between two nodes. Ensures no duplicate edges are added.
 
         :param edge: A tuple representing the edge (node1, node2).
+        :param directed: Whether the graph is directed or undirected.
+        :return: The updated adjacency list as a dictionary with sorted neighbors.
         """
+        directed = self.default_directed if directed is None else directed
         node1, node2 = edge
         self.adjacency_list.setdefault(node1, set()).add(node2)
-        if not self.directed:
+        if not directed:
             self.adjacency_list.setdefault(node2, set()).add(node1)
+        return self.to_dict()
 
-    def remove_edge(self, edge: tuple[int, int]) -> None:
+    def remove_edge(self, edge: tuple[int, int], directed: bool = None) -> dict[int, list[int]]:
         """
         Remove an edge between two nodes.
 
         :param edge: A tuple representing the edge (node1, node2).
+        :param directed: Whether the graph is directed or undirected.
+        :return: The updated adjacency list as a dictionary with sorted neighbors.
         """
+        directed = self.default_directed if directed is None else directed
         node1, node2 = edge
-        self.adjacency_list.get(node1, set()).discard(node2)
-        if not self.directed:
-            self.adjacency_list.get(node2, set()).discard(node1)
+        if node1 in self.adjacency_list:
+            self.adjacency_list[node1].discard(node2)
+        if not directed and node2 in self.adjacency_list:
+            self.adjacency_list[node2].discard(node1)
+        return self.to_dict()
 
-    def add_node(self, node: int) -> None:
+    def add_node(self, node: int) -> dict[int, list[int]]:
         """
         Add a new node to the graph.
 
         :param node: The node to be added.
+        :return: The updated adjacency list as a dictionary with sorted neighbors.
         """
         self.adjacency_list.setdefault(node, set())
+        return self.to_dict()
 
-    def remove_node(self, node: int) -> None:
+    def remove_node(self, node: int) -> dict[int, list[int]]:
         """
         Remove a node and all its associated edges from the graph.
 
         :param node: The node to be removed.
+        :return: The updated adjacency list as a dictionary with sorted neighbors.
         """
         if node in self.adjacency_list:
             for neighbor in list(self.adjacency_list[node]):
                 self.adjacency_list[neighbor].discard(node)
             del self.adjacency_list[node]
+        return self.to_dict()
+
+    def to_dict(self) -> dict[int, list[int]]:
+        """
+        Get the graph's adjacency list as a dictionary with sorted neighbors.
+
+        :return: A dictionary representation of the graph's adjacency list.
+        """
+        return {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
 
     def read_from_csv(self, file_path: str) -> dict[int, list[int]]:
         """
@@ -85,12 +107,14 @@ class Graph:
         sorted_adjacency_list = {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
         return sorted_adjacency_list
 
-    def is_bipartite(self) -> bool:
+    def is_bipartite(self, directed: bool = None) -> bool:
         """
         Check if the graph is bipartite.
 
+        :param directed: Whether the graph is directed or undirected.
         :return: True if the graph is bipartite, False otherwise.
         """
+        directed = self.default_directed if directed is None else directed
         color: dict[int, int] = {}
 
         def dfs(node: int, current_color: int) -> bool:
@@ -98,19 +122,26 @@ class Graph:
                 return color[node] == current_color
             color[node] = current_color
             neighbors = self.adjacency_list[node]
-            if self.directed:
-                # Include incoming edges for directed graphs
-                neighbors.update(v for v in self.adjacency_list if node in self.adjacency_list[v])
-            return all(dfs(neighbor, 1 - current_color) for neighbor in neighbors)
 
-        return all(dfs(node, 0) for node in self.adjacency_list if node not in color)
+            for neighbor in neighbors:
+                if not dfs(neighbor, 1 - current_color):
+                    return False
 
-    def hamiltonian_cycle(self) -> list[int] | None:
+            return True
+        for node in self.adjacency_list:
+            if node not in color:
+                if not dfs(node, 0):
+                    return False
+        return True
+
+    def hamiltonian_cycle(self, directed: bool = None) -> list[int] | None:
         """
         Find a Hamiltonian cycle in the graph, if it exists.
 
+        :param directed: Whether the graph is directed or undirected.
         :return: A list of nodes representing the Hamiltonian cycle, or None if no cycle exists.
         """
+        directed = self.default_directed if directed is None else directed
         n = len(self.adjacency_list)
         path: list[int] = []
 
@@ -138,49 +169,93 @@ class Graph:
             return path
         return None
 
-    def eulerian_cycle(self) -> list[int] | str:
+    def eulerian_cycle(self, directed: bool = None) -> list[int] | str:
         """
-        Find an Eulerian cycle in the graph, if it exists.
+        Find the Eulerian cycle for the graph (directed or undirected).
 
-        :return: A list of nodes representing the Eulerian cycle, or a message if no cycle exists.
+        :param directed: Whether the graph is directed or undirected.
+        :return: A list of vertices in the Eulerian cycle, or a message if no cycle exists.
         """
-        def find_cycle(start: int) -> list[int]:
+        directed = self.default_directed if directed is None else directed
+
+        def has_even_degrees() -> bool:
+            """Check if all vertices in an undirected graph have even degrees."""
+            return all(len(neighbors) % 2 == 0 for neighbors in self.adjacency_list.values())
+
+        def has_equal_in_out_degrees() -> bool:
+            """Check if all vertices in a directed graph have equal in-degree and out-degree."""
+            in_degrees = {node: 0 for node in self.adjacency_list}
+            for node, neighbors in self.adjacency_list.items():
+                for neighbor in neighbors:
+                    in_degrees[neighbor] += 1
+            return all(len(self.adjacency_list[node]) == in_degrees[node] for node in self.adjacency_list)
+
+        def is_connected(for_directed: bool) -> bool:
+            """
+            Check if the graph is connected.
+
+            For directed graphs, checks strong connectivity (using forward and reverse DFS).
+            For undirected graphs, checks simple connectivity (using single DFS).
+            """
+            visited = set()
+
+            def dfs(node: int, reverse: bool = False):
+                if node not in visited:
+                    visited.add(node)
+                    neighbors = (
+                        [n for n in self.adjacency_list if node in self.adjacency_list[n]]
+                        if reverse and for_directed else
+                        self.adjacency_list[node]
+                    )
+                    for neighbor in neighbors:
+                        dfs(neighbor, reverse=reverse)
+            start_node = next(iter(self.adjacency_list))
+            dfs(start_node, reverse=False)
+            if len(visited) != len(self.adjacency_list):
+                return False
+            if for_directed:
+                visited.clear()
+                dfs(start_node, reverse=True)
+                if len(visited) != len(self.adjacency_list):
+                    return False
+
+            return True
+
+        def find_cycle(start: int, local_graph: dict[int, list[int]]) -> list[int]:
+            """
+            Find an Eulerian cycle using Hierholzer's algorithm.
+            """
             stack = [start]
             cycle = []
-            local_graph = {node: neighbors.copy() for node, neighbors in self.adjacency_list.items()}
             while stack:
                 u = stack[-1]
                 if local_graph[u]:
                     v = local_graph[u].pop()
-                    if not self.directed:
+                    if not directed:
                         local_graph[v].remove(u)
                     stack.append(v)
                 else:
                     cycle.append(stack.pop())
             return cycle[::-1]
 
-        if self.directed:
-            for node in self.adjacency_list:
-                out_degree = len(self.adjacency_list[node])
-                in_degree = sum(1 for neighbors in self.adjacency_list.values() if node in neighbors)
-                if out_degree != in_degree:
-                    return "The directed graph does not have an Eulerian cycle"
+        if directed:
+            if not has_equal_in_out_degrees():
+                return "The directed graph does not have an Eulerian cycle"
+            if not is_connected(for_directed=True):
+                return "The directed graph is not strongly connected"
         else:
-            if any(len(neighbors) % 2 != 0 for neighbors in self.adjacency_list.values()):
+            if not has_even_degrees():
                 return "The undirected graph does not have an Eulerian cycle"
+            if not is_connected(for_directed=False):
+                return "The undirected graph is not connected"
 
-        cycle = find_cycle(next(iter(self.adjacency_list)))
-        if any(local_graph for local_graph in self.adjacency_list.values()):
+        local_graph = {node: list(neighbors) for node, neighbors in self.adjacency_list.items()}
+        start_node = next(iter(local_graph))
+        cycle = find_cycle(start_node, local_graph)
+        if any(local_graph[node] for node in local_graph):
             return "The graph does not have an Eulerian cycle"
+
         return cycle
-
-    def to_dict(self) -> dict[int, list[int]]:
-        """
-        Get the graph's adjacency list as a dictionary with sorted neighbors.
-
-        :return: A dictionary representation of the graph's adjacency list.
-        """
-        return {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
 
     def display(self) -> None:
         """
