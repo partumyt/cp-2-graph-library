@@ -1,10 +1,10 @@
-'''
-Weisfeiler Leman graph isomorphism test
-'''
+"""Weisfeiler Leman graph isomorphism test"""
+
+
 def label(graph, directed = False):
-    '''
+    """
     Provides labels for each node of the graph necessary for checking isomorphism
-    '''
+    """
     label = {}
     for i in graph:
         label.update({i : '0'})
@@ -23,7 +23,7 @@ def label(graph, directed = False):
 
 
 def isomorphic(graph1, graph2, directed = False):
-    '''
+    """
     >>> g1 = {1: [1, 2], 2: [2, 1, 3], 3: [2]}
     >>> g2 = {2: [2, 1, 3], 3: [2], 1: [1, 2]}
     >>> isomorphic(g1, g2)
@@ -52,7 +52,7 @@ def isomorphic(graph1, graph2, directed = False):
     >>> g2 = {'A': ['B'], 'B': ['C'], 'C': ['A']}
     >>> isomorphic(g1, g2, directed = True)
     True
-    '''
+    """
     label1 = label(graph1, directed)
     label2 = label(graph2, directed)
     if len(label1) != len(label2):

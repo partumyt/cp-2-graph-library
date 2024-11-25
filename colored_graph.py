@@ -15,6 +15,7 @@ def is_available(vertex, color, graph, colors, directed=False):
     else:
         return all(colors[neighbor] != color for neighbor in graph[vertex])
 
+
 def color_graph(graph, colors, vertex_index, available_colors, degree_order, directed=False):
     """
     Recursively try to color the graph using backtracking.
@@ -38,6 +39,7 @@ def color_graph(graph, colors, vertex_index, available_colors, degree_order, dir
                 return True
             colors[current_vertex] = None
     return False
+
 
 def three_color_graph(graph: dict, directed=False) -> list[tuple]:
     """
