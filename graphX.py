@@ -2,37 +2,31 @@
 Library to work with graphs
 
 Created by team #2
+All rights reserved.
 """
 
+from functools import lru_cache
 import csv
 
+
 class Graph:
-    """
-    A class representing a graph, supporting both directed and undirected graphs.
-    Provides functionalities such as adding/removing nodes and edges, detecting Hamiltonian/Eulerian cycles,
-    checking bipartiteness, converting the adjacency list to a dictionary, and coloring the graph using 3 colors.
-
-    Attributes:
-        adjacency_list (dict[int, set[int]]): The adjacency list representation of the graph using sets.
-        directed (bool): Indicates if the graph is directed or undirected.
-    """
-
-    def __init__(self, directed: bool = False):
+    def __init__(self, directed: bool = False) -> None:
         """
-        Initialize a new graph.
+        Initializes a new graph instance.
 
-        :param directed: Whether the graph is directed. Defaults to False (undirected).
+        :param directed: Whether the graph is directed, defaults to False
+        :return: None
         """
         self.adjacency_list: dict[int, set[int]] = {}
-        self.default_directed = directed
+        self.directed = directed
 
     def add_edge(self, edge: tuple[int, int], directed: bool = None) -> dict[int, list[int]]:
         """
-        Add an edge between two nodes. Ensures no duplicate edges are added.
+        Adds an edge between two nodes while preventing duplicate edges.
 
-        :param edge: A tuple representing the edge (node1, node2).
-        :param directed: Whether the graph is directed or undirected.
-        :return: The updated adjacency list as a dictionary with sorted neighbors.
+        :param edge: Tuple containing two nodes (node1, node2) to connect
+        :param directed: Override default graph direction type
+        :return: Updated adjacency list as dictionary with sorted neighbors
         """
         directed = self.default_directed if directed is None else directed
         node1, node2 = edge
@@ -43,11 +37,11 @@ class Graph:
 
     def remove_edge(self, edge: tuple[int, int], directed: bool = None) -> dict[int, list[int]]:
         """
-        Remove an edge between two nodes.
+        Removes an existing edge between two nodes.
 
-        :param edge: A tuple representing the edge (node1, node2).
-        :param directed: Whether the graph is directed or undirected.
-        :return: The updated adjacency list as a dictionary with sorted neighbors.
+        :param edge: Tuple containing two nodes (node1, node2) to disconnect
+        :param directed: Override default graph direction type
+        :return: Updated adjacency list as dictionary with sorted neighbors
         """
         directed = self.default_directed if directed is None else directed
         node1, node2 = edge
@@ -59,20 +53,20 @@ class Graph:
 
     def add_node(self, node: int) -> dict[int, list[int]]:
         """
-        Add a new node to the graph.
+        Adds a new isolated node to the graph.
 
-        :param node: The node to be added.
-        :return: The updated adjacency list as a dictionary with sorted neighbors.
+        :param node: Integer identifier for the new node
+        :return: Updated adjacency list as dictionary with sorted neighbors
         """
         self.adjacency_list.setdefault(node, set())
         return self.to_dict()
 
     def remove_node(self, node: int) -> dict[int, list[int]]:
         """
-        Remove a node and all its associated edges from the graph.
+        Removes a node and all its connected edges.
 
-        :param node: The node to be removed.
-        :return: The updated adjacency list as a dictionary with sorted neighbors.
+        :param node: Integer identifier of node to remove
+        :return: Updated adjacency list as dictionary with sorted neighbors
         """
         if node in self.adjacency_list:
             for neighbor in list(self.adjacency_list[node]):
@@ -82,19 +76,18 @@ class Graph:
 
     def to_dict(self) -> dict[int, list[int]]:
         """
-        Get the graph's adjacency list as a dictionary with sorted neighbors.
+        Converts internal adjacency list to dictionary format with sorted neighbors.
 
-        :return: A dictionary representation of the graph's adjacency list.
+        :return: Dictionary representation of graph's adjacency list
         """
         return {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
 
     def read_from_csv(self, file_path: str) -> dict[int, list[int]]:
         """
-        Read a graph from a CSV file. The first line specifies whether the graph is directed or undirected.
-        Subsequent lines represent edges as pairs of nodes.
+        Loads graph structure from CSV file. First line specifies graph type (directed/undirected).
 
-        :param file_path: The path to the CSV file.
-        :return: The adjacency list of the graph as a dictionary with sorted sets as values.
+        :param file_path: Path to CSV file containing graph data
+        :return: Adjacency list as dictionary with sorted neighbors
         """
         with open(file_path, mode="r") as file:
             reader = csv.reader(file)
@@ -107,55 +100,53 @@ class Graph:
         sorted_adjacency_list = {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
         return sorted_adjacency_list
 
-    def is_bipartite(self, directed: bool = None) -> bool:
-        """
-        Check if the graph is bipartite.
 
-        :param directed: Whether the graph is directed or undirected.
-        :return: True if the graph is bipartite, False otherwise.
-        """
-        directed = self.default_directed if directed is None else directed
-        color: dict[int, int] = {}
+class CycleGraph(Graph):
+    def is_bipartite(self, directed: bool | None = None) -> bool:
+        """Check if graph is bipartite using DFS coloring.
 
+        :param directed: Override graph direction type, defaults to None
+        :return: True if graph is bipartite, False otherwise
+        """
+        @lru_cache(maxsize=None)
         def dfs(node: int, current_color: int) -> bool:
             if node in color:
                 return color[node] == current_color
             color[node] = current_color
-            neighbors = self.adjacency_list[node]
+            return all(dfs(neighbor, 1 - current_color)
+                      for neighbor in self.adjacency_list[node])
 
-            for neighbor in neighbors:
-                if not dfs(neighbor, 1 - current_color):
-                    return False
+        directed = self.directed if directed is None else directed
+        color: dict[int, int] = {}
+        return all(node in color or dfs(node, 0)
+                  for node in self.adjacency_list)
 
-            return True
-        for node in self.adjacency_list:
-            if node not in color:
-                if not dfs(node, 0):
-                    return False
-        return True
+    def hamiltonian_cycle(self, directed: bool | None = None) -> list[int] | None:
+        """Find Hamiltonian cycle using backtracking.
 
-    def hamiltonian_cycle(self, directed: bool = None) -> list[int] | None:
+        :param directed: Override graph direction type, defaults to None
+        :return: List of vertices forming Hamiltonian cycle if exists, None otherwise
         """
-        Find a Hamiltonian cycle in the graph, if it exists.
-
-        :param directed: Whether the graph is directed or undirected.
-        :return: A list of nodes representing the Hamiltonian cycle, or None if no cycle exists.
-        """
-        directed = self.default_directed if directed is None else directed
+        directed = self.directed if directed is None else directed
         n = len(self.adjacency_list)
         path: list[int] = []
 
         def is_valid(vertex: int, position: int) -> bool:
-            if vertex not in self.adjacency_list[path[position - 1]]:
-                return False
-            if vertex in path:
-                return False
-            return True
+            if position == 0:
+                return True
+            if directed:
+                return (vertex in self.adjacency_list[path[position - 1]] and
+                       vertex not in path)
+            return (vertex in self.adjacency_list[path[position - 1]] and
+                   vertex not in path)
 
         def hamiltonian_util(position: int) -> bool:
             if position == n:
-                return path[0] in self.adjacency_list[path[-1]]
-            for vertex in self.adjacency_list.keys():
+                return (path[0] in self.adjacency_list[path[-1]] if directed
+                       else path[0] in self.adjacency_list[path[-1]] and
+                       path[-1] in self.adjacency_list[path[0]])
+
+            for vertex in self.adjacency_list:
                 if is_valid(vertex, position):
                     path.append(vertex)
                     if hamiltonian_util(position + 1):
@@ -165,66 +156,60 @@ class Graph:
 
         start_vertex = next(iter(self.adjacency_list))
         path.append(start_vertex)
-        if hamiltonian_util(1):
-            return path
-        return None
+        return path if hamiltonian_util(1) else None
 
-    def eulerian_cycle(self, directed: bool = None) -> list[int] | str:
+    def eulerian_cycle(self, directed: bool | None = None) -> list[int] | str:
+        """Find Eulerian cycle using Hierholzer's algorithm.
+
+        :param directed: Override graph direction type, defaults to None
+        :return: List of vertices forming Eulerian cycle if exists, error message otherwise
         """
-        Find the Eulerian cycle for the graph (directed or undirected).
+        directed = self.directed if directed is None else directed
 
-        :param directed: Whether the graph is directed or undirected.
-        :return: A list of vertices in the Eulerian cycle, or a message if no cycle exists.
-        """
-        directed = self.default_directed if directed is None else directed
+        def is_connected() -> bool:
+            visited: set[int] = set()
 
-        def has_even_degrees() -> bool:
-            """Check if all vertices in an undirected graph have even degrees."""
-            return all(len(neighbors) % 2 == 0 for neighbors in self.adjacency_list.values())
+            def dfs(node: int, reverse: bool = False) -> None:
+                if node not in visited:
+                    visited.add(node)
+                    neighbors = ([n for n in self.adjacency_list
+                                if node in self.adjacency_list[n]]
+                               if reverse and directed
+                               else self.adjacency_list[node])
+                    for neighbor in neighbors:
+                        dfs(neighbor, reverse)
 
-        def has_equal_in_out_degrees() -> bool:
-            """Check if all vertices in a directed graph have equal in-degree and out-degree."""
+            start_node = next(iter(self.adjacency_list))
+            dfs(start_node)
+            if len(visited) != len(self.adjacency_list):
+                return False
+            if directed:
+                visited.clear()
+                dfs(start_node, True)
+                return len(visited) == len(self.adjacency_list)
+            return True
+
+        local_graph = {node: list(neighbors)
+                      for node, neighbors in self.adjacency_list.items()}
+
+        if directed:
             in_degrees = {node: 0 for node in self.adjacency_list}
             for node, neighbors in self.adjacency_list.items():
                 for neighbor in neighbors:
                     in_degrees[neighbor] += 1
-            return all(len(self.adjacency_list[node]) == in_degrees[node] for node in self.adjacency_list)
+            if not all(len(self.adjacency_list[node]) == in_degrees[node]
+                      for node in self.adjacency_list):
+                return "The directed graph has no Eulerian cycle"
+            if not is_connected():
+                return "The directed graph is not strongly connected"
+        else:
+            if not all(len(neighbors) % 2 == 0
+                      for neighbors in self.adjacency_list.values()):
+                return "The undirected graph has no Eulerian cycle"
+            if not is_connected():
+                return "The undirected graph is not connected"
 
-        def is_connected(for_directed: bool) -> bool:
-            """
-            Check if the graph is connected.
-
-            For directed graphs, checks strong connectivity (using forward and reverse DFS).
-            For undirected graphs, checks simple connectivity (using single DFS).
-            """
-            visited = set()
-
-            def dfs(node: int, reverse: bool = False):
-                if node not in visited:
-                    visited.add(node)
-                    neighbors = (
-                        [n for n in self.adjacency_list if node in self.adjacency_list[n]]
-                        if reverse and for_directed else
-                        self.adjacency_list[node]
-                    )
-                    for neighbor in neighbors:
-                        dfs(neighbor, reverse=reverse)
-            start_node = next(iter(self.adjacency_list))
-            dfs(start_node, reverse=False)
-            if len(visited) != len(self.adjacency_list):
-                return False
-            if for_directed:
-                visited.clear()
-                dfs(start_node, reverse=True)
-                if len(visited) != len(self.adjacency_list):
-                    return False
-
-            return True
-
-        def find_cycle(start: int, local_graph: dict[int, list[int]]) -> list[int]:
-            """
-            Find an Eulerian cycle using Hierholzer's algorithm.
-            """
+        def find_cycle(start: int) -> list[int]:
             stack = [start]
             cycle = []
             while stack:
@@ -238,89 +223,56 @@ class Graph:
                     cycle.append(stack.pop())
             return cycle[::-1]
 
-        if directed:
-            if not has_equal_in_out_degrees():
-                return "The directed graph does not have an Eulerian cycle"
-            if not is_connected(for_directed=True):
-                return "The directed graph is not strongly connected"
-        else:
-            if not has_even_degrees():
-                return "The undirected graph does not have an Eulerian cycle"
-            if not is_connected(for_directed=False):
-                return "The undirected graph is not connected"
-
-        local_graph = {node: list(neighbors) for node, neighbors in self.adjacency_list.items()}
         start_node = next(iter(local_graph))
-        cycle = find_cycle(start_node, local_graph)
-        if any(local_graph[node] for node in local_graph):
-            return "The graph does not have an Eulerian cycle"
+        cycle = find_cycle(start_node)
+        return "No Eulerian cycle exists" if any(local_graph[node]
+                                               for node in local_graph) else cycle
 
-        return cycle
-
-    def display(self) -> None:
+    def three_color_graph(self, directed: bool | None = None) -> list[tuple[int, str | None]] | str:
         """
-        Print the adjacency list in a readable format.
-        """
-        print("Adjacency List:")
-        for node, neighbors in self.to_dict().items():
-            print(f"{node}: {neighbors}")
+        Attempts to color graph using three colors via backtracking.
 
-    def label(self) -> dict[int, str]:
+        :param directed: Override default graph direction type
+        :return: List of (vertex, color) pairs if possible, error message if impossible
+        Internal helper methods:
+         - Uses degree-based vertex ordering for optimization
+         - Colors: "r" (red), "g" (green), "b" (blue)
+         - Validates color assignments against neighbors
         """
-        Provides labels for each node of the graph necessary for checking isomorphism.
-
-        :return: A dictionary with nodes as keys and labels as values.
-        """
-        label = {node: '0' for node in self.adjacency_list}
-        for _ in range(len(self.adjacency_list)):
-            new_label = {}
-            for node in self.adjacency_list:
-                if self.directed:
-                    into = [n for n in self.adjacency_list if node in self.adjacency_list[n]]
-                    out = self.adjacency_list[node]
-                    neighbor_label = tuple(label[n] for n in into) + tuple(label[n] for n in out)
-                else:
-                    neighbor_label = tuple(label[n] for n in self.adjacency_list[node])
-                new_label[node] = f'{label[node]}|{"|".join(neighbor_label)}'
-            label = new_label
-        return label
-
-    def isomorphic(self, other: 'Graph') -> bool:
-        """
-        Check if two graphs are isomorphic.
-
-        :param other: The other graph to compare against.
-        :return: True if the graphs are isomorphic, False otherwise.
-        """
-        if len(self.adjacency_list) != len(other.adjacency_list):
-            return False
-        return set(self.label().values()) == set(other.label().values())
-
-    def three_color_graph(self) -> list[tuple[int, str | None]] | str:
+        directed = self.directed if directed is None else directed
         vertices = list(self.adjacency_list.keys())
-        colors = {v: None for v in vertices}
+        colors: dict[int, str | None] = {v: None for v in vertices}
         available_colors = ["r", "g", "b"]
-        degrees = {v: len(neighbors) for v, neighbors in self.adjacency_list.items()}
+
+        degrees = {v: (len(self.adjacency_list[v]) if directed else
+                      len(self.adjacency_list[v]) +
+                      sum(1 for u in self.adjacency_list if v in self.adjacency_list[u]))
+                  for v in vertices}
         degree_order = sorted(vertices, key=lambda v: degrees[v], reverse=True)
 
-        if self.color_graph(colors, 0, available_colors, degree_order):
-            if all(colors[vertex] is not None for vertex in vertices):
-                return [(vertex, colors[vertex]) for vertex in vertices]
-        return "Impossible to color the graph in 3 colors"
+        def is_available(vertex: int, color: str) -> bool:
+            if directed:
+                return all(colors.get(neighbor) != color
+                         for neighbor in self.adjacency_list[vertex])
+            return all(colors.get(neighbor) != color
+                      for neighbor in self.adjacency_list[vertex]) and \
+                   all(colors.get(u) != color
+                       for u in self.adjacency_list if vertex in self.adjacency_list[u])
 
-    def color_graph(self, colors: dict[int, str | None], vertex_index: int, available_colors: list[str],
-                    degree_order: list[int]) -> bool:
-        if vertex_index == len(degree_order):
-            return True
+        @lru_cache(maxsize=None)
+        def color_graph(vertex_index: int) -> bool:
+            if vertex_index == len(degree_order):
+                return True
 
-        current_vertex = degree_order[vertex_index]
-        for color in available_colors:
-            if self.is_available(current_vertex, color, colors):
-                colors[current_vertex] = color
-                if self.color_graph(colors, vertex_index + 1, available_colors, degree_order):
-                    return True
-                colors[current_vertex] = None
-        return False
+            current_vertex = degree_order[vertex_index]
+            for color in available_colors:
+                if is_available(current_vertex, color):
+                    colors[current_vertex] = color
+                    if color_graph(vertex_index + 1):
+                        return True
+                    colors[current_vertex] = None
+            return False
 
-    def is_available(self, vertex: int, color: str, colors: dict[int, str]) -> bool:
-        return all(colors[neighbor] != color for neighbor in self.adjacency_list[vertex])
+        return ([(vertex, colors[vertex]) for vertex in vertices]
+                if color_graph(0) else
+                "Impossible to color the graph in 3 colors")
