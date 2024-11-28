@@ -108,18 +108,19 @@ class CycleGraph(Graph):
         :param directed: Override graph direction type, defaults to None
         :return: True if graph is bipartite, False otherwise
         """
+
         @lru_cache(maxsize=None)
         def dfs(node: int, current_color: int) -> bool:
             if node in color:
                 return color[node] == current_color
             color[node] = current_color
             return all(dfs(neighbor, 1 - current_color)
-                      for neighbor in self.adjacency_list[node])
+                       for neighbor in self.adjacency_list[node])
 
         directed = self.directed if directed is None else directed
         color: dict[int, int] = {}
         return all(node in color or dfs(node, 0)
-                  for node in self.adjacency_list)
+                   for node in self.adjacency_list)
 
     def hamiltonian_cycle(self, directed: bool | None = None) -> list[int] | None:
         """Find Hamiltonian cycle using backtracking.
@@ -136,15 +137,15 @@ class CycleGraph(Graph):
                 return True
             if directed:
                 return (vertex in self.adjacency_list[path[position - 1]] and
-                       vertex not in path)
+                        vertex not in path)
             return (vertex in self.adjacency_list[path[position - 1]] and
-                   vertex not in path)
+                    vertex not in path)
 
         def hamiltonian_util(position: int) -> bool:
             if position == n:
                 return (path[0] in self.adjacency_list[path[-1]] if directed
-                       else path[0] in self.adjacency_list[path[-1]] and
-                       path[-1] in self.adjacency_list[path[0]])
+                        else path[0] in self.adjacency_list[path[-1]] and
+                             path[-1] in self.adjacency_list[path[0]])
 
             for vertex in self.adjacency_list:
                 if is_valid(vertex, position):
@@ -173,9 +174,9 @@ class CycleGraph(Graph):
                 if node not in visited:
                     visited.add(node)
                     neighbors = ([n for n in self.adjacency_list
-                                if node in self.adjacency_list[n]]
-                               if reverse and directed
-                               else self.adjacency_list[node])
+                                  if node in self.adjacency_list[n]]
+                                 if reverse and directed
+                                 else self.adjacency_list[node])
                     for neighbor in neighbors:
                         dfs(neighbor, reverse)
 
@@ -190,7 +191,7 @@ class CycleGraph(Graph):
             return True
 
         local_graph = {node: list(neighbors)
-                      for node, neighbors in self.adjacency_list.items()}
+                       for node, neighbors in self.adjacency_list.items()}
 
         if directed:
             in_degrees = {node: 0 for node in self.adjacency_list}
@@ -198,13 +199,13 @@ class CycleGraph(Graph):
                 for neighbor in neighbors:
                     in_degrees[neighbor] += 1
             if not all(len(self.adjacency_list[node]) == in_degrees[node]
-                      for node in self.adjacency_list):
+                       for node in self.adjacency_list):
                 return "The directed graph has no Eulerian cycle"
             if not is_connected():
                 return "The directed graph is not strongly connected"
         else:
             if not all(len(neighbors) % 2 == 0
-                      for neighbors in self.adjacency_list.values()):
+                       for neighbors in self.adjacency_list.values()):
                 return "The undirected graph has no Eulerian cycle"
             if not is_connected():
                 return "The undirected graph is not connected"
@@ -226,7 +227,7 @@ class CycleGraph(Graph):
         start_node = next(iter(local_graph))
         cycle = find_cycle(start_node)
         return "No Eulerian cycle exists" if any(local_graph[node]
-                                               for node in local_graph) else cycle
+                                                 for node in local_graph) else cycle
 
     def three_color_graph(self, directed: bool | None = None) -> list[tuple[int, str | None]] | str:
         """
@@ -245,19 +246,19 @@ class CycleGraph(Graph):
         available_colors = ["r", "g", "b"]
 
         degrees = {v: (len(self.adjacency_list[v]) if directed else
-                      len(self.adjacency_list[v]) +
-                      sum(1 for u in self.adjacency_list if v in self.adjacency_list[u]))
-                  for v in vertices}
+                       len(self.adjacency_list[v]) +
+                       sum(1 for u in self.adjacency_list if v in self.adjacency_list[u]))
+                   for v in vertices}
         degree_order = sorted(vertices, key=lambda v: degrees[v], reverse=True)
 
         def is_available(vertex: int, color: str) -> bool:
             if directed:
                 return all(colors.get(neighbor) != color
-                         for neighbor in self.adjacency_list[vertex])
+                           for neighbor in self.adjacency_list[vertex])
             return all(colors.get(neighbor) != color
-                      for neighbor in self.adjacency_list[vertex]) and \
-                   all(colors.get(u) != color
-                       for u in self.adjacency_list if vertex in self.adjacency_list[u])
+                       for neighbor in self.adjacency_list[vertex]) and \
+                all(colors.get(u) != color
+                    for u in self.adjacency_list if vertex in self.adjacency_list[u])
 
         @lru_cache(maxsize=None)
         def color_graph(vertex_index: int) -> bool:
