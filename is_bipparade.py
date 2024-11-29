@@ -1,12 +1,18 @@
-def is_dicotyledonous(graph: dict) -> bool:
+def is_dicotyledonous(graph: dict, directed=False) -> bool:
     """
-    Перевіряє критерій дводольності графа.
-    Починаємо з будь-якої вершини, фарбуємо її кольором 0.
-    Її сусідів фарбуємо кольором 1, сусідів сусідів — знову 0, і так далі.
-    Якщо на якомусь кроці знайдемо вершину, яка вже пофарбована, 
-    але має такий самий колір, як її сусід, граф не є дводольним.
+    Checks the bipartiteness criterion of a graph.
+    We start with any vertex, color it with color 0.
+    We color its neighbors with color 1, neighbors of neighbors — again 0, and so on.
+    If at some step we find a vertex that is already colored,
+    but has the same color as its neighbor, the graph is not bipartite.
+
+    The function supports both directed and undirected graphs.
     
-    Функція підтримує як орієнтовані, так і неорієнтовані графи.
+    :param graph (dict): Graph represented as an adjacency list.
+    :param directed (bool): Whether to consider the graph as directed.
+
+    Returns:
+    - bool: True if the graph is bipartite, False otherwise.
     >>> is_dicotyledonous({
     ...     1: [2, 3],
     ...     2: [1, 4],
@@ -29,33 +35,38 @@ def is_dicotyledonous(graph: dict) -> bool:
     ...     2: [3],
     ...     3: [1]})
     False
+    >>> is_dicotyledonous({
+    ...     1: [2],
+    ...     2: [3],
+    ...     3: []}, directed=True)
+    True
+    >>> is_dicotyledonous({
+    ...     1: [2],
+    ...     2: [1]}, directed=True)
+    True
     """
-    color = {}  # словник для зберігання кольору вершини (ключ - вершина, значення - колір 0 або 1)
+    color = {}  # dictionary for storing vertex color (key is vertex, value is color 0 or 1)
 
     def check_if_dye(start):
         """
-        Ця функція перевіряє чи можна забарвити компонент графа, 
-        що містить початкову вершину, згідно з принципом дводольності.
+        This function checks whether a graph component can be colored, 
+        containing the initial vertex, according to the bipartite principle.
         """
-        queue = [start]  # додаємо початкову вершину в чергу
-        color[start] = 0  # розфарбовуємо початкову вершину в 0 колір
+        queue = [start]  # add the initial vertex to the queue
+        color[start] = 0  # color the initial vertex in 0 color
         while queue:
-            node = queue.pop(0)  # витягуємо вершину з черги
+            node = queue.pop(0)  # remove the vertex from the queue
             for neighbor in graph[node]:
-                # Для неорієнтованих графів додаємо зворотні ребра
-                if isinstance(graph[neighbor], list):  # перевірка на неорієнтовані графи
-                    for reverse_neighbor in graph[neighbor]:
-                        if reverse_neighbor not in graph[node]:
-                            graph[node].append(reverse_neighbor)
-                
-                if neighbor not in color:  # якщо сусід ще не пофарбований
-                    color[neighbor] = 1 - color[node]  # фарбуємо в протилежний колір
+                if neighbor not in color:
+                    color[neighbor] = 1 - color[node]
                     queue.append(neighbor)
-                elif color[neighbor] == color[node]:  # якщо сусід має такий самий колір
-                    return False  # граф не дводольний
+                elif color[neighbor] == color[node]:
+                    return False
+                if directed and color[neighbor] != 1 - color[node]:
+                    return False
         return True
 
-    for node in graph:  # перевіряємо всі компоненти графа
+    for node in graph:  # check all graph components
         if node not in color:
             if not check_if_dye(node):
                 return False
