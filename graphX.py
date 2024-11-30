@@ -28,7 +28,7 @@ class Graph:
         :param directed: Override default graph direction type
         :return: Updated adjacency list as dictionary with sorted neighbors
         """
-        directed = self.default_directed if directed is None else directed
+        directed = self.directed if directed is None else directed
         node1, node2 = edge
         self.adjacency_list.setdefault(node1, set()).add(node2)
         if not directed:
@@ -43,7 +43,7 @@ class Graph:
         :param directed: Override default graph direction type
         :return: Updated adjacency list as dictionary with sorted neighbors
         """
-        directed = self.default_directed if directed is None else directed
+        directed = self.directed if directed is None else directed
         node1, node2 = edge
         if node1 in self.adjacency_list:
             self.adjacency_list[node1].discard(node2)
@@ -82,14 +82,24 @@ class Graph:
         """
         return {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
 
-    def read_from_csv(self, file_path: str) -> dict[int, list[int]]:
+    def read_from_csv(self, file) -> dict[int, list[int]]:
         """
-        Loads graph structure from CSV file. First line specifies graph type (directed/undirected).
+        Loads graph structure from a CSV file or file-like object.
+        The first line specifies graph type (directed/undirected).
 
-        :param file_path: Path to CSV file containing graph data
+        :param file: Path to CSV file or file-like object containing graph data
         :return: Adjacency list as dictionary with sorted neighbors
         """
-        with open(file_path, mode="r") as file:
+        if isinstance(file, str):
+            with open(file, mode="r") as f:
+                reader = csv.reader(f)
+                header = next(reader)
+                self.directed = header[0].strip().lower() == "directed"
+                for row in reader:
+                    if len(row) == 2:
+                        node1, node2 = map(int, row)
+                        self.add_edge((node1, node2))
+        else:
             reader = csv.reader(file)
             header = next(reader)
             self.directed = header[0].strip().lower() == "directed"
@@ -97,8 +107,8 @@ class Graph:
                 if len(row) == 2:
                     node1, node2 = map(int, row)
                     self.add_edge((node1, node2))
-        sorted_adjacency_list = {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
-        return sorted_adjacency_list
+
+        return {node: sorted(neighbors) for node, neighbors in self.adjacency_list.items()}
 
 
 class CycleGraph(Graph):
@@ -114,8 +124,7 @@ class CycleGraph(Graph):
             if node in color:
                 return color[node] == current_color
             color[node] = current_color
-            return all(dfs(neighbor, 1 - current_color)
-                       for neighbor in self.adjacency_list[node])
+            return all(dfs(neighbor, 1 - current_color) for neighbor in self.adjacency_list[node])
 
         directed = self.directed if directed is None else directed
         color: dict[int, int] = {}
@@ -141,6 +150,7 @@ class CycleGraph(Graph):
             return (vertex in self.adjacency_list[path[position - 1]] and
                     vertex not in path)
 
+        @lru_cache(maxsize=None)
         def hamiltonian_util(position: int) -> bool:
             if position == n:
                 return (path[0] in self.adjacency_list[path[-1]] if directed
