@@ -287,3 +287,79 @@ class CycleGraph(Graph):
         return ([(vertex, colors[vertex]) for vertex in vertices]
                 if color_graph(0) else
                 "Impossible to color the graph in 3 colors")
+
+    def isomorphic(self, other_graph: "CycleGraph", directed: bool = None) -> bool:
+        """
+        Checks if the current graph is isomorphic to another graph using the Weisfeiler-Lehman test.
+
+        :param other_graph: Another CycleGraph instance to compare against.
+        :param directed: Override default graph direction type, defaults to None.
+        :return: True if graphs are isomorphic, False otherwise.
+        """
+        directed = self.directed if directed is None else directed
+
+        def preprocess(graph):
+            """
+            Prepares adjacency data for labeling. Creates a reverse adjacency list for directed graphs.
+
+            :param graph: The adjacency list of the graph.
+            :return: Tuple containing the graph adjacency list and reverse adjacency list (if directed).
+            """
+            if directed:
+                reverse_adj = {}
+                for node, neighbors in graph.items():
+                    for neighbor in neighbors:
+                        reverse_adj.setdefault(neighbor, set()).add(node)
+                return graph, reverse_adj
+            return graph, None
+
+        def label(graph, reverse_adj=None):
+            """
+            Computes Weisfeiler-Lehman labels for the nodes in the graph.
+
+            :param graph: Adjacency list of the graph.
+            :param reverse_adj: Reverse adjacency list for directed graphs.
+            :return: Dictionary of node labels.
+            """
+            name = {node: f"0|{len(neighbors)}" for node, neighbors in graph.items()}
+            print(f"Initial labels: {name}")  # Debugging output
+
+            for iteration in range(len(graph)):
+                new_name = {}
+                for node in graph:
+                    if directed:
+                        into = sorted(reverse_adj.get(node, []))
+                        out = sorted(graph[node])
+                        neighbor_name = tuple(name[n] for n in into) + tuple(name[n] for n in out)
+                    else:
+                        neighbor_name = tuple(sorted(name[n] for n in graph[node]))
+                    new_name[node] = f"{name[node]}|{'|'.join(neighbor_name)}"
+                name = new_name
+                print(f"Iteration {iteration + 1} labels: {name}")  # Debugging output
+            return name
+
+        # Handle special edge cases
+        if not self.adjacency_list and not other_graph.adjacency_list:
+            print("Both graphs are empty.")
+            return True
+        if not self.adjacency_list or not other_graph.adjacency_list:
+            print("One of the graphs is empty.")
+            return False
+        if len(self.adjacency_list) != len(other_graph.adjacency_list):
+            print("Graph sizes differ.")
+            return False
+
+        # Preprocess graphs
+        graph1, reverse1 = preprocess(self.adjacency_list)
+        graph2, reverse2 = preprocess(other_graph.adjacency_list)
+
+        # Compute labels
+        label1 = label(graph1, reverse1)
+        label2 = label(graph2, reverse2)
+
+        # Debugging output
+        print(f"Final labels for self: {label1}")
+        print(f"Final labels for other_graph: {label2}")
+
+        # Compare labels
+        return set(label1.values()) == set(label2.values())
