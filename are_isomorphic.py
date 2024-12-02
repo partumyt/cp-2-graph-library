@@ -1,4 +1,5 @@
 """Weisfeiler Leman graph isomorphism test"""
+from graphX import CycleGraph
 
 
 def label(graph, directed = False):

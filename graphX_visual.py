@@ -145,6 +145,17 @@ def main():
             visualizer.update_node_color(colors)
             refresh_graph(layout)
 
+    # Isomorphic check
+    st.sidebar.subheader("Isomorphic Check")
+    uploaded_iso_file = st.sidebar.file_uploader("Upload Graph for Isomorphism Check (CSV)", type=["csv"])
+    if uploaded_iso_file:
+        stringio_iso = StringIO(uploaded_iso_file.getvalue().decode("utf-8"))
+        other_graph = CycleGraph()
+        other_graph.read_from_csv(stringio_iso)
+        if st.sidebar.button("Check Isomorphism"):
+            result = G.isomorphic(other_graph)
+            st.sidebar.success("Graphs have same canonical form, but there is a slight chance they aren't isomorphic!" if result else "Graphs are NOT Isomorphic.")
+
     # Reset Colors Button
     st.sidebar.header("Reset Operations")
     if st.sidebar.button("Reset Node Colors"):
