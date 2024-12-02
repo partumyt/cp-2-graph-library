@@ -1,14 +1,11 @@
 import argparse
 from graphX import Graph, CycleGraph
-import sys
-
 
 def print_graph(graph):
     """Displays the adjacency list of the graph."""
     print("Adjacency List:")
     for node, neighbors in graph.to_dict().items():
         print(f"{node}: {', '.join(map(str, neighbors))}")
-
 
 def load_graph(graph, file_path):
     """Loads a graph from a CSV file."""
@@ -20,7 +17,6 @@ def load_graph(graph, file_path):
         print(f"Error: File '{file_path}' not found.")
     except Exception as e:
         print(f"Error: {e}")
-
 
 def main():
     parser = argparse.ArgumentParser(description="Console-based Graph Operations")
@@ -54,7 +50,7 @@ def main():
     # Display graph
     subparsers.add_parser("display", help="Display the adjacency list of the graph")
 
-    # Check bipartite
+    # Bipartite check
     subparsers.add_parser("check-bipartite", help="Check if the graph is bipartite")
 
     # Hamiltonian cycle
@@ -63,8 +59,12 @@ def main():
     # Eulerian cycle
     subparsers.add_parser("eulerian", help="Find an Eulerian cycle")
 
-    # Three-color graph
+    # Three-coloring
     subparsers.add_parser("three-color", help="Attempt to three-color the graph")
+
+    # Isomorphic Check
+    parser_isomorphic = subparsers.add_parser("isomorphic", help="Check graph isomorphism")
+    parser_isomorphic.add_argument("file", type=str, help="Path to the other graph's CSV file")
 
     # Parse arguments
     args = parser.parse_args()
@@ -90,7 +90,8 @@ def main():
     elif args.command == "display":
         print_graph(graph)
     elif args.command == "check-bipartite":
-        print("Bipartite!" if graph.is_bipartite() else "Not Bipartite.")
+        result = graph.is_bipartite()
+        print("Bipartite!" if result else "Not Bipartite.")
     elif args.command == "hamiltonian":
         cycle = graph.hamiltonian_cycle()
         print(f"Hamiltonian Cycle: {cycle}" if cycle else "No Hamiltonian Cycle found.")
@@ -105,10 +106,13 @@ def main():
             print("Three-coloring result:")
             for node, color in result:
                 print(f"Node {node}: {color}")
+    elif args.command == "isomorphic":
+        other_graph = CycleGraph()
+        load_graph(other_graph, args.file)
+        result = graph.isomorphic(other_graph)
+        print("Graphs have same canonical form, but there is a slight chance they aren't isomorphic!" if result else "Graphs are NOT Isomorphic.")
     else:
         parser.print_help()
-        sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
