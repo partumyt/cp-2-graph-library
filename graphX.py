@@ -335,10 +335,8 @@ class CycleGraph(Graph):
                         neighbor_name = tuple(sorted(name[n] for n in graph[node]))
                     new_name[node] = f"{name[node]}|{'|'.join(neighbor_name)}"
                 name = new_name
-                print(f"Iteration {iteration + 1} labels: {name}")  # Debugging output
             return name
 
-        # Handle special edge cases
         if not self.adjacency_list and not other_graph.adjacency_list:
             print("Both graphs are empty.")
             return True
@@ -349,17 +347,10 @@ class CycleGraph(Graph):
             print("Graph sizes differ.")
             return False
 
-        # Preprocess graphs
         graph1, reverse1 = preprocess(self.adjacency_list)
         graph2, reverse2 = preprocess(other_graph.adjacency_list)
 
-        # Compute labels
         label1 = label(graph1, reverse1)
         label2 = label(graph2, reverse2)
 
-        # Debugging output
-        print(f"Final labels for self: {label1}")
-        print(f"Final labels for other_graph: {label2}")
-
-        # Compare labels
         return set(label1.values()) == set(label2.values())
