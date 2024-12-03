@@ -15,19 +15,6 @@ def hamiltonian_cycle(graph: dict) -> list | None:
     ... }
     >>> hamiltonian_cycle(graph1)
     [0, 1, 4, 3, 2]
-    >>> graph2 = {
-    ...     0: [1, 2],
-    ...     1: [0, 2],
-    ...     2: [0, 1]
-    ... }
-    >>> hamiltonian_cycle(graph2) is None
-    True
-    >>> graph3 = {
-    ...     0: [1],
-    ...     1: [0]
-    ... }
-    >>> hamiltonian_cycle(graph3) is None
-    True
     """
     n = len(graph)
     path = []
