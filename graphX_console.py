@@ -1,118 +1,168 @@
 import argparse
-from graphX import Graph, CycleGraph
+import json
+from graphX import CycleGraph
 
-def print_graph(graph):
-    """Displays the adjacency list of the graph."""
+STATE_FILE = "graph_state.json"  # File to persist graph state
+
+
+def save_graph_state(graph: CycleGraph) -> None:
+    """Save the current graph state to a JSON file."""
+    with open(STATE_FILE, "w") as file:
+        json.dump({"directed": graph.directed, "adjacency_list": graph.to_dict()}, file)
+
+
+def load_graph_state() -> CycleGraph:
+    """Load the graph state from a JSON file."""
+    try:
+        with open(STATE_FILE, "r") as file:
+            data = json.load(file)
+            graph = CycleGraph(directed=data["directed"])
+            for node, neighbors in data["adjacency_list"].items():
+                for neighbor in neighbors:
+                    graph.add_edge((int(node), neighbor))
+            return graph
+    except FileNotFoundError:
+        return CycleGraph()
+    except Exception as e:
+        print(f"Error loading graph state: {e}")
+        return CycleGraph()
+
+
+def display_graph(graph: CycleGraph) -> None:
+    """Display the adjacency list of the graph."""
     print("Adjacency List:")
     for node, neighbors in graph.to_dict().items():
         print(f"{node}: {', '.join(map(str, neighbors))}")
 
-def load_graph(graph, file_path):
-    """Loads a graph from a CSV file."""
+
+def create_graph() -> CycleGraph:
+    """Interactively create a new graph."""
+    directed = input("Is the graph directed? (yes/no): ").strip().lower() == "yes"
+    graph = CycleGraph(directed=directed)
+
+    print("Graph creation: Add nodes and edges.")
+    while True:
+        action = input("Choose an action - (1) Add node, (2) Add edge, (3) Display graph, (4) Finish: ").strip()
+        if action == "1":
+            try:
+                node = int(input("Enter node ID: ").strip())
+                graph.add_node(node)
+                print(f"Node {node} added.")
+            except ValueError:
+                print("Invalid input. Please enter a valid node ID.")
+        elif action == "2":
+            try:
+                node1 = int(input("Enter first node ID: ").strip())
+                node2 = int(input("Enter second node ID: ").strip())
+                graph.add_edge((node1, node2))
+                print(f"Edge ({node1}, {node2}) added.")
+            except ValueError:
+                print("Invalid input. Please enter valid node IDs.")
+        elif action == "3":
+            display_graph(graph)
+        elif action == "4":
+            print("Graph creation finished.")
+            break
+        else:
+            print("Invalid option. Please choose again.")
+    return graph
+
+
+def handle_command(graph: CycleGraph, command: list[str]) -> CycleGraph:
+    """Process a single command and return the updated graph."""
+    subcommand = command[0]
     try:
-        with open(file_path, 'r') as file:
-            graph.read_from_csv(file)
-        print("Graph loaded successfully!")
-    except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
+        if subcommand == "create":
+            graph = create_graph()
+            print("Graph created successfully!")
+        elif subcommand == "load":
+            file_path = command[1]
+            with open(file_path, "r") as file:
+                graph.read_from_csv(file)
+            print("Graph loaded successfully!")
+        elif subcommand == "add-node":
+            node = int(command[1])
+            graph.add_node(node)
+            print(f"Node {node} added.")
+        elif subcommand == "remove-node":
+            node = int(command[1])
+            graph.remove_node(node)
+            print(f"Node {node} removed.")
+        elif subcommand == "add-edge":
+            node1, node2 = int(command[1]), int(command[2])
+            graph.add_edge((node1, node2))
+            print(f"Edge ({node1}, {node2}) added.")
+        elif subcommand == "remove-edge":
+            node1, node2 = int(command[1]), int(command[2])
+            graph.remove_edge((node1, node2))
+            print(f"Edge ({node1}, {node2}) removed.")
+        elif subcommand == "three-color":
+            result = graph.three_color_graph()
+            if isinstance(result, str):
+                print(result)
+            else:
+                print("Three-coloring result:")
+                for node, color in result:
+                    print(f"Node {node}: {color}")
+        elif subcommand == "display":
+            display_graph(graph)
+        elif subcommand == "check-bipartite":
+            result = graph.is_bipartite()
+            print("Bipartite!" if result else "Not Bipartite.")
+        elif subcommand == "hamiltonian":
+            cycle = graph.hamiltonian_cycle()
+            print(f"Hamiltonian Cycle: {cycle}" if cycle else "No Hamiltonian Cycle found.")
+        elif subcommand == "eulerian":
+            cycle = graph.eulerian_cycle()
+            print(f"Eulerian Cycle: {cycle}" if isinstance(cycle, list) else cycle)
+        elif subcommand == "isomorphic":
+            file_path = command[1]
+            other_graph = CycleGraph()
+            with open(file_path, "r") as file:
+                other_graph.read_from_csv(file)
+            result = graph.isomorphic(other_graph)
+            print("Graphs have same canonical form, but there is a slight chance they aren't isomorphic!" \
+                if result else "Graphs are NOT Isomorphic.")
+        else:
+            print(f"Command '{subcommand}' not recognized.")
+    except IndexError:
+        print(f"Invalid arguments for command '{subcommand}'. Use --help for details.")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error executing command '{subcommand}': {e}")
 
-def main():
+    save_graph_state(graph)
+    return graph
+
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Console-based Graph Operations")
-    parser.add_argument("--directed", action="store_true", help="Set the graph to directed mode.")
-
-    # Operations
-    subparsers = parser.add_subparsers(dest="command", help="Graph operations")
-
-    # Add node
-    parser_add_node = subparsers.add_parser("add-node", help="Add a node to the graph")
-    parser_add_node.add_argument("node", type=int, help="Node to add")
-
-    # Remove node
-    parser_remove_node = subparsers.add_parser("remove-node", help="Remove a node from the graph")
-    parser_remove_node.add_argument("node", type=int, help="Node to remove")
-
-    # Add edge
-    parser_add_edge = subparsers.add_parser("add-edge", help="Add an edge to the graph")
-    parser_add_edge.add_argument("node1", type=int, help="Start node of the edge")
-    parser_add_edge.add_argument("node2", type=int, help="End node of the edge")
-
-    # Remove edge
-    parser_remove_edge = subparsers.add_parser("remove-edge", help="Remove an edge from the graph")
-    parser_remove_edge.add_argument("node1", type=int, help="Start node of the edge")
-    parser_remove_edge.add_argument("node2", type=int, help="End node of the edge")
-
-    # Load graph
-    parser_load = subparsers.add_parser("load", help="Load a graph from a CSV file")
-    parser_load.add_argument("file", type=str, help="Path to the CSV file")
-
-    # Display graph
-    subparsers.add_parser("display", help="Display the adjacency list of the graph")
-
-    # Bipartite check
-    subparsers.add_parser("check-bipartite", help="Check if the graph is bipartite")
-
-    # Hamiltonian cycle
-    subparsers.add_parser("hamiltonian", help="Find a Hamiltonian cycle")
-
-    # Eulerian cycle
-    subparsers.add_parser("eulerian", help="Find an Eulerian cycle")
-
-    # Three-coloring
-    subparsers.add_parser("three-color", help="Attempt to three-color the graph")
-
-    # Isomorphic Check
-    parser_isomorphic = subparsers.add_parser("isomorphic", help="Check graph isomorphism")
-    parser_isomorphic.add_argument("file", type=str, help="Path to the other graph's CSV file")
-
-    # Parse arguments
+    parser.add_argument("commands", nargs="+", help="Commands and arguments to execute sequentially.")
     args = parser.parse_args()
 
-    # Initialize graph
-    graph = CycleGraph(directed=args.directed)
+    # Load existing graph state or start fresh
+    graph = load_graph_state()
 
-    # Command handlers
-    if args.command == "add-node":
-        graph.add_node(args.node)
-        print(f"Node {args.node} added.")
-    elif args.command == "remove-node":
-        graph.remove_node(args.node)
-        print(f"Node {args.node} removed.")
-    elif args.command == "add-edge":
-        graph.add_edge((args.node1, args.node2))
-        print(f"Edge ({args.node1}, {args.node2}) added.")
-    elif args.command == "remove-edge":
-        graph.remove_edge((args.node1, args.node2))
-        print(f"Edge ({args.node1}, {args.node2}) removed.")
-    elif args.command == "load":
-        load_graph(graph, args.file)
-    elif args.command == "display":
-        print_graph(graph)
-    elif args.command == "check-bipartite":
-        result = graph.is_bipartite()
-        print("Bipartite!" if result else "Not Bipartite.")
-    elif args.command == "hamiltonian":
-        cycle = graph.hamiltonian_cycle()
-        print(f"Hamiltonian Cycle: {cycle}" if cycle else "No Hamiltonian Cycle found.")
-    elif args.command == "eulerian":
-        cycle = graph.eulerian_cycle()
-        print(f"Eulerian Cycle: {cycle}" if isinstance(cycle, list) else cycle)
-    elif args.command == "three-color":
-        result = graph.three_color_graph()
-        if isinstance(result, str):
-            print(result)
+    # Parse commands with arguments
+    commands = args.commands
+    grouped_commands = []
+    current_command = []
+
+    for token in commands:
+        if token in {"create", "load", "add-node", "remove-node", "add-edge", "remove-edge", "three-color",
+                     "display", "check-bipartite", "hamiltonian", "eulerian", "isomorphic"}:
+            if current_command:
+                grouped_commands.append(current_command)
+            current_command = [token]
         else:
-            print("Three-coloring result:")
-            for node, color in result:
-                print(f"Node {node}: {color}")
-    elif args.command == "isomorphic":
-        other_graph = CycleGraph()
-        load_graph(other_graph, args.file)
-        result = graph.isomorphic(other_graph)
-        print("Graphs have same canonical form, but there is a slight chance they aren't isomorphic!" if result else "Graphs are NOT Isomorphic.")
-    else:
-        parser.print_help()
+            current_command.append(token)
+
+    if current_command:
+        grouped_commands.append(current_command)
+
+    # Process each grouped command
+    for command in grouped_commands:
+        graph = handle_command(graph, command)
+
 
 if __name__ == "__main__":
     main()
