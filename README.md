@@ -91,7 +91,7 @@ graph.add_edge((1, 2))
 print(graph.to_dict())  # {1: [2], 2: [1]}
 ```
 
-[Посилання на звіт]([https://example.com](https://github.com/partumyt/cp-2-graph-library/blob/main/zvit.pdf))
+[Посилання на звіт](https://github.com/partumyt/cp-2-graph-library/blob/main/zvit.pdf)
 
 ## Автори
 Створено командою #2. Усі права захищені.
