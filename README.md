@@ -1,3 +1,5 @@
+Презентація: https://www.canva.com/design/DAGYKXzqW0M/gf0c08k9utf9XYcSERd3ug/edit?utm_content=DAGYKXzqW0M&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+Звіт: https://docs.google.com/document/d/1OkH4zIPGHtI83R3um3aL0CPHuaLvNpOyfInOJ0O1V8k/edit?usp=sharing
 # GraphX Library
 
 GraphX — це Python-бібліотека для роботи з графами, яка включає можливості обробки, аналізу, візуалізації та роботи з різними типами графів.
